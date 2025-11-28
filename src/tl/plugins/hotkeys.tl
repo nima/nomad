@@ -5,16 +5,14 @@ local T = t.tags.Tags
 local M: t.plugins.PluginModule = {}
 
 local keymaps = {
-  { mode = "n", role = R.Win, key = "<C-F5>", rhs = "<cmd>lua dofile(vim.fn.stdpath('config') .. '/init.lua')<CR>",
-    desc = "Reload Rakhsh config", tags = { T.ActionView } },
-  { mode = "n", role = R.Win, key = "<C-Space>", rhs = "<cmd>WhichKey<CR>",
-    desc = "Show which-key menu", tags = { T.ActionView } },
+  { mode = "n", role = R.Win, key = "<C-F5>", rhs = "<cmd>lua dofile(vim.fn.stdpath('config') .. '/init.lua')<CR>", desc = "Reload Rakhsh config", tags = { T.ActionView } },
+  { mode = "n", role = R.Win, key = "<C-Space>", rhs = "<cmd>WhichKey<CR>", desc = "Show which-key menu", tags = { T.ActionView } },
+  { mode = "n", role = R.Win, key = "<C-c>", rhs = "<cmd>:confirm quitall<CR>", desc = "Quitall", tags = { T.ActionView } },
 }
 
 local type WhichKeyOpts = { string: any }
 local record WhichKey
   setup: function(WhichKeyOpts | nil): nil
-  -- add(mappings, opts?)
   add: function(any, WhichKeyOpts | nil): nil
 end
 
@@ -47,16 +45,16 @@ function M.lazy(): PluginSpec
 
       -- Add manual native bindings (new which-key v3-style spec)
       wk.add({
-        { "<C-]>", desc = "Jump to definition", mode = "n" },
-        { "<C-^>", desc = "Toggle previous buffer", mode = "n" },
-        { "<C-t>", desc = "Jump back", mode = "n" },
+        { "<C-]>", mode = "n", desc = "Jump to definition" },
+        { "<C-^>", mode = "n", desc = "Toggle previous buffer" },
+        { "<C-t>", mode = "n", desc = "Jump back" },
       }, nil)
       wk.add({
-	  { "<leader>?", group = "Built-in keys", mode = "n" },
-	  { "<leader>?^", desc = "<C-^> – Toggle previous buffer", mode = "n" },
-	  { "<leader>?]", desc = "<C-]> – Jump to definition",     mode = "n" },
-	  { "<leader>?t", desc = "<C-t> – Jump back",               mode = "n" },
-	}, nil)
+        { "<leader>?",  mode = "n", group = "Built-in keys" },
+        { "<leader>?^", mode = "n", desc = "<C-^> – Toggle previous buffer" },
+        { "<leader>?]", mode = "n", desc = "<C-]> – Jump to definition" },
+        { "<leader>?t", mode = "n", desc = "<C-t> – Jump back" },
+      }, nil)
     end,
     keymaps = keymaps,  -- handled in config
   } as PluginSpec

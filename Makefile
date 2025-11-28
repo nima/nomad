@@ -1,22 +1,31 @@
 .DEFAULT_GOAL := sync
 
+BLACK   := \033[1;30m
+RED     := \033[1;31m
+GREEN   := \033[1;32m
+YELLOW  := \033[1;33m
+BLUE    := \033[1;34m
+MAGENTA := \033[1;35m
+CYAN    := \033[1;36m
+ENDC    := \033[0m
 
-GREEN  := \033[32m
-RED    := \033[31m
-GREEN  := \033[32m
-YELLOW := \033[33m
-CYAN   := \033[36m
-ENDC   := \033[0m
+black   = $(shell echo "$(BLACK)$(1)$(ENDC)")
+red     = $(shell echo "$(RED)$(1)$(ENDC)")
+green   = $(shell echo "$(GREEN)$(1)$(ENDC)")
+yellow  = $(shell echo "$(YELLOW)$(1)$(ENDC)")
+blue    = $(shell echo "$(BLUE)$(1)$(ENDC)")
+magenta = $(shell echo "$(MAGENTA)$(1)$(ENDC)")
+cyan    = $(shell echo "$(CYAN)$(1)$(ENDC)")
 
 good  = $(shell echo "$(GREEN)$(1)$(ENDC)")
 bad   = $(shell echo "$(RED)$(1)$(ENDC)")
 ugly  = $(shell echo "$(UGLY)$(1)$(ENDC)")
 
-cache = $(shell mkdir -p /tmp/rakhsh; echo "/tmp/rakhsh.$(1)")
-
 luarocks_t = $(shell echo "[$(CYAN)LuaRocks$(ENDC)]")
 brew_t     = $(shell echo "[$(YELLOW)Brew$(ENDC)]")
 npm_t      = $(shell echo "[$(GREEN)NPM$(ENDC)]")
+
+cache = $(shell mkdir -p /tmp/rakhsh; echo "/tmp/rakhsh.$(1)")
 
 export NVIM_APPNAME=rakhsh
 nvim := NVIM_APPNAME=rakhsh $(shell command -v nvim)
@@ -26,8 +35,7 @@ RAKHSH_CONFIG := $(shell $(nvim) --headless --clean +'lua io.stdout:write(vim.fn
 RAKHSH_DATA   := $(shell $(nvim) --headless --clean +'lua io.stdout:write(vim.fn.stdpath("data"))'   +qa)
 RAKHSH_STATE  := $(shell $(nvim) --headless --clean +'lua io.stdout:write(vim.fn.stdpath("state"))'  +qa)
 RAKHSH_CACHE  := $(shell $(nvim) --headless --clean +'lua io.stdout:write(vim.fn.stdpath("cache"))'  +qa)
-
-ITERM2_PLIST := $(HOME)/Library/Preferences/com.googlecode.iterm2.plist
+RAKHSH_SOCKET := $(RAKHSH_STATE)/server.pipe
 
 brew     := $(shell command -v brew || exit 2)
 luarocks := $(shell command -v luarocks || exit 1)
@@ -155,27 +163,28 @@ dependencies: caches installed outdated
 .PHONY: dependencies
 
 pre-validate: src/tl dependencies
-	$(info # target:$@)
+	$(info [$(call magenta,$@)])
 	@set -e; for f in $$(rg -g '*.tl' --files); do $(tlchk) -I$< "$$f"; done
 .PHONY: pre-validate
 
 build: pre-validate
-	$(info # target:$@)
+	$(info [$(call blue,$@)])
 	@rm -rf build
 	@mkdir -p build
 	@cyan build --prune
 	@#rsync -ai --prune-empty-dirs --info=NAME0 --include "*/" --include="*.lua" --exclude="*" src/lua/ build/lua/
 .PHONY: build
 
-iTerm2: $(ITERM2_PLIST).xml
-$(ITERM2_PLIST).xml $(ITERM2_PLIST).bak:
-	@libexec/it2integ.sh
-	@#osascript -e 'tell application "iTerm2" to quit' && open -a iTerm
-.PHONY: iTerm2
+iTerm2.regex:; @jq -r '.Profiles[0]."Smart Selection Rules"[0].regex' "$(ITERM2_DYN_PROF)"
+iTerm2:
+	$(info [$(call green,$@)])
+	@libexec/iTerm2-integ.py
+.PHONY: iTerm2 iTerm2.regex
 
-install: $(RAKHSH) build $(ITERM2_PLIST).xml $(ITERM2_PLIST).bak
-	$(info # target:$@)
+install: $(RAKHSH) build iTerm2
+	$(info [$(call green,$@)])
 sync: $(RAKHSH)
+	$(info [$(call green,$@)])
 $(RAKHSH): build
 	@#rsync -ai --info=NAME0 --delete $</ $@/
 	@rsync -a --info=NAME0 --delete $</ $@/
@@ -186,7 +195,7 @@ $(RAKHSH): build
 .PHONY: sync
 
 post-validate: install
-	$(info # target:$@)
+	$(info [$(call magenta,$@)])
 	@$(nvim) --headless +'lua print(vim.inspect(vim.fn.maparg("K", "n", false, true)))' +qa
 	@$(nvim) --headless "+lua local ok,u = pcall(require,'core.utils');\
 	  if not ok then error('Rakhsh post-validate: require(\"core.utils\") failed: '..tostring(u)) end;\
@@ -207,39 +216,61 @@ post-validate: install
 reinstall: uninstall clean post-validate
 .PHONY: reinstall
 
+ITERM2_PLIST    := $(HOME)/Library/Preferences/com.googlecode.iterm2.plist
+ITERM2_DYN_PROF := $(HOME)/Library/Application Support/iTerm2/DynamicProfiles/rakhsh.json
 uninstall:
-	$(info # target:$@)
+	$(info [$(call black,$@)])
+	rm -f "$(ITERM2_DYN_PROF)"
 	rm -rf $(RAKHSH)
 	rm -f ~/bin/rx
 .PHONY: uninstall
 
 purge: clean uninstall
+	$(info [$(call black,$@)])
 	rm -rf $(RAKHSH_DATA)
 	rm -rf $(RAKHSH_CONFIG)
-	rm -rf $(RAKHSH_STATE)/server.pip
-	@if [ -e $(ITERM2_PLIST).bak ] && [ -e $(ITERM2_PLIST).xml ]; then\
-		mv $(ITERM2_PLIST).bak $(ITERM2_PLIST);\
-		rm $(ITERM2_PLIST).xml;\
-	fi
+	rm -rf $(RAKHSH_SOCKET)
 .PHONY: purge
 
 clean:
-	$(info # target:$@)
+	$(info [$(call yellow,$@)])
 	rm -rf build
 .PHONY: clean
 
 ################################################################################
 
 ide: reinstall
+	$(info [$(call yellow,$@)])
+	$(info [$(call green,$@)])
 	$(rx)
 
 lazy:
+	$(info [$(call magenta,$@)])
+	$(info [$(call magenta,$@)])
 	lsd --tree "$$($(nvim) --headless --clean +'lua io.stdout:write(vim.fn.stdpath("data"), "\n")' +qa)/lazy"
 
 ls-files:
+	$(info [$(call magenta,$@)])
 	$(info Typed TEAL)
 	@lsd --tree src/tl
 ls-files.user:
+	$(info [$(call magenta,$@)])
 	$(info Installed LUA)
 	@lsd --tree "$(RAKHSH_CONFIG)"
 .PHONY: ls-files ls-files.user
+
+state: pid := $(shell lsof -t $(RAKHSH_SOCKET) 2>/dev/null)
+state:
+	$(info [$(call magenta,$@)])
+	@printf "%-24s" "Socket:"
+	@[ -e $(RAKHSH_SOCKET) ] && echo "$(call green,$(RAKHSH_SOCKET))" || echo "$(call black,$(RAKHSH_SOCKET))"
+	@printf "%-24s" "PID:"
+	@[ -n "$(pid)" ] && echo "$(call green,$(pid))" || echo "$(call black,000)"
+	@printf "%-24s" "Buffers:"
+	@n=0; [ ! -S $(RAKHSH_SOCKET) ] || n=$$(nvim --server $(RAKHSH_SOCKET) --headless --remote-expr "len(getbufinfo({'buflisted':1}))"); echo "$$n"
+.PHONY: state
+
+killsocket: pid := $(shell lsof -t $(RAKHSH_SOCKET) 2>/dev/null)
+killsocket:
+	$(info [$(call magenta,$@)])
+	kill -9 $(pid)

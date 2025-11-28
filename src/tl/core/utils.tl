@@ -69,13 +69,30 @@ local function mklhs(mode: string, role: t.roles.Role, key: string): string
 
   return prefix .. key
 end
- 
+
+local function same_rhs(info: t.vim.VimRawMapInfo, rhs: any): boolean
+  if type(rhs) == "string" then
+    return info.rhs == rhs
+  elseif type(rhs) == "function" and type(info.callback) == "function" then
+    local cb = info.callback as function(...: any): any
+    local fn = rhs           as function(...: any): any
+    local a = debug.getinfo(cb, "S")
+    local b = debug.getinfo(fn, "S")
+    if a and b and a.source == b.source and a.linedefined == b.linedefined then
+      return true
+    end
+  end
+  return false
+end
+
 local function collisions(existing: t.vim.VimRawMapInfo|nil, mode: string, lhs: string, rhs: any): nil
-  --+ no mapping exists → no conflict
   if existing == nil then return end
 
   local info = existing as t.vim.VimRawMapInfo
   if info.lhs == nil then return end
+
+  -- same lhs + same rhs → fine, idempotent re-attach
+  if same_rhs(info, rhs) then return end
 
   local caller = debug.getinfo(2, "Sl")
 
@@ -101,14 +118,34 @@ end
 
 local function find_buf_map(bufnr: integer, mode: string, lhs: string): t.vim.VimRawMapInfo | nil
   local maps = (vim.api.nvim_buf_get_keymap(bufnr, mode) as {t.vim.VimRawMapInfo})
-
-  for _, m in ipairs(maps) do
-    if m.lhs == lhs then
-      return m
-    end
+  for _, info in ipairs(maps) do
+    if info.lhs == lhs then return info end
   end
-
   return nil
+end
+
+local function validate_plugin_keymap(src: string, km: t.plugins.PluginKeymap): nil
+  if km.mode == nil or km.mode == "" then
+    error(("apply_plugin_keymaps[%s]: keymap missing mode (%s)"):format(src, km.key or "?"), 2)
+  end
+  if km.role == nil then
+    error(("apply_plugin_keymaps[%s]: keymap missing role (key = %s, desc = %s)"):format(src, km.key or "?", km.desc or "?"), 2)
+  end
+  if type(km.role) ~= "table" or km.role._tag == nil then
+    error(("apply_plugin_keymaps[%s]: invalid role for key %s (desc = %s): %s"):format(src, km.key or "?", km.desc or "?", tostring(km.role)), 2)
+  end
+  if km.key == nil or km.key == "" then
+    error(("apply_plugin_keymaps[%s]: keymap missing key"):format(src), 2)
+  end
+  if km.rhs == nil then
+    error(("apply_plugin_keymaps[%s]: keymap missing rhs (%s)"):format(src, km.key or "?"), 2)
+  end
+  if km.desc == nil or km.desc == "" then
+    error(("apply_plugin_keymaps[%s]: keymap missing desc (%s)"):format(src, km.key or "?"), 2)
+  end
+  if km.tags == nil or #km.tags == 0 then
+    error(("apply_plugin_keymaps[%s]: keymap missing tags (%s)"):format(src, km.key or "?"), 2)
+  end
 end
 
 function M.safemap_buf(bufnr: integer, mode: string, role: t.roles.Role, key: string, rhs: any, opts: t.vim.VimMapOpts): nil
@@ -136,18 +173,14 @@ function M.apply_plugin_attach_keymaps(modname: string, bufnr: integer): nil
   local keymaps = spec.keymaps as {t.plugins.PluginKeymap}
   for _, km in ipairs(keymaps) do
     if km.on == t.plugins.KeymapEvents.Attach then
+      validate_plugin_keymap(("%s (attach)"):format(modname), km)
       M.safemap_buf(bufnr, km.mode, km.role, km.key, km.rhs, M.opts(km.desc, km.tags))
     end
   end
 end
 
 function M.install_keymap(src: string, km: t.plugins.PluginKeymap): nil
-  if km.mode == nil or km.mode == "" then error(("apply_plugin_keymaps[%s]: keymap missing mode (%s)"):format(src, km.key or "?"), 2) end
-  if km.role == nil then error(("apply_plugin_keymaps[%s]: keymap missing role (%s)"):format(src, km.key or "?"), 2) end
-  if km.key == nil or km.key == "" then error(("apply_plugin_keymaps[%s]: keymap missing key"):format(src), 2) end
-  if km.rhs == nil then error(("apply_plugin_keymaps[%s]: keymap missing rhs (%s)"):format(src, km.key or "?"), 2) end
-  if km.desc == nil or km.desc == "" then error(("apply_plugin_keymaps[%s]: keymap missing desc (%s)"):format(src, km.key or "?"), 2) end
-  if km.tags == nil or #km.tags == 0 then error(("apply_plugin_keymaps[%s]: keymap missing tags (%s)"):format(src, km.key or "?"), 2) end
+  validate_plugin_keymap(src, km)
   if km.on == nil then km.on = On.Immediate end
 
   local effective_desc = km.desc

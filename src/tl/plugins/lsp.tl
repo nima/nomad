@@ -28,18 +28,14 @@ end
 local On = t.plugins.KeymapEvents
 function M.lazy(): PluginSpec
   local keymaps: {PluginKeymap} = {
-    { desc = "LSP: goto definition", tags = { T.ActionView, T.BasisSymbol, T.TargetBuffer },
-      mode = "n", role = R.Nav, key = "gd", rhs = vim.lsp.buf.definition, on = On.Attach },
-    { mode = "n", role = R.Nav, key = "gD", rhs = vim.lsp.buf.declaration,
-      desc = "LSP: goto declaration",
-      tags = { T.ActionView, T.BasisSymbol, T.TargetBuffer },
-      on = On.Attach },
-
+    { mode = "n", role = R.Nav, key = "gd", rhs = vim.lsp.buf.definition, on = On.Attach,
+      desc = "LSP: goto definition", tags = { T.ActionView, T.BasisSymbol, T.TargetBuffer } },
+    { mode = "n", role = R.Nav, key = "gD", rhs = vim.lsp.buf.declaration, on = On.Attach,
+      desc = "LSP: goto declaration", tags = { T.ActionView, T.BasisSymbol, T.TargetBuffer } },
     { mode = "n", role = R.Nav, key = "gI", rhs = vim.lsp.buf.implementation,
       desc = "LSP: goto implementation",
       tags = { T.ActionView, T.BasisSymbol, T.TargetBuffer },
       on = On.Attach },
-
     { mode = "n", role = R.Nav, key = "gr", rhs = vim.lsp.buf.references,
       desc = "LSP: references",
       tags = { T.ActionView, T.BasisSymbol, T.TargetBuffer },
@@ -50,12 +46,12 @@ function M.lazy(): PluginSpec
       tags = { T.ActionHelp, T.BasisSymbol, T.TargetBuffer },
       on = On.Attach },
 
-    { mode = "n", role = R.Rename, key = "<leader>rn", rhs = vim.lsp.buf.rename,
+    { mode = "n", role = R.LSP, key = "<leader>rn", rhs = vim.lsp.buf.rename,
       desc = "LSP: rename symbol",
       tags = { T.ActionEdit, T.BasisSymbol, T.TargetBuffer },
       on = On.Attach },
 
-    { mode = "n", role = R.Code, key = "<leader>ca", rhs = vim.lsp.buf.code_action,
+    { mode = "n", role = R.LSP, key = "<leader>ca", rhs = vim.lsp.buf.code_action,
       desc = "LSP: code action",
       tags = { T.ActionEdit, T.BasisSymbol, T.TargetBuffer },
       on = On.Attach },
@@ -106,7 +102,7 @@ function M.lazy(): PluginSpec
       tags = { T.ActionView, T.BasisSymbol, T.TargetBuffer },
       on = On.Attach },
 
-    { mode = "n", role = R.Code, key = "<leader>f", rhs = function() vim.lsp.buf.format({ async = true }) end,
+    { mode = "n", role = R.LSP, key = "<leader>f", rhs = function() vim.lsp.buf.format({ async = true }) end,
       desc = "LSP: format",
       tags = { T.ActionEdit, T.BasisContent, T.TargetBuffer },
       on = On.Attach },

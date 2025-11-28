@@ -91,4 +91,5 @@ if not setup_lazy(false) then
   vim.notify("rakhsh: plugins are not installed yet. Press <leader>Li to install with Lazy.", vim.log.levels.INFO, nil)
 end
 
-vim.keymap.set("n", "<leader>Li", RakhshLazyInstall, { silent = true })
+--! Need a better way than this
+vim.keymap.set("n", "<leader>Li", RakhshLazyInstall, { silent = true }) --TODO

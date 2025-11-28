@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+export TERM='xterm-256color'
 export PS4='+ ${BASH_SOURCE}:${LINENO} ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 export PATH="/opt/homebrew/bin:${PATH}"
 NVIM="$(command -v nvim)"
@@ -36,16 +37,23 @@ function :debug() {
 }
 
 function :vsc() {
-  return 0 # DISABLED
   [[ -x "${vscode}" ]] || return 0
-  : open -g -a "Visual Studio Code" --args --reuse-window --goto "$(realpath "$1")"
-  :                                   code --reuse-window --goto "$(realpath "$1")"
 
-  me="$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true')"
-  osascript\
-    -e 'tell application "Visual Studio Code" to activate'\
-    -e 'tell application "System Events" to keystroke "t" using {command down, option down}'\
-  ;
+  # code --reuse-window --goto "$(realpath "$1")"
+  local -a tokens
+  for token in "$@"; do
+    tokens+=( "$(realpath "${token}")" )
+  done
+  open -g -a "Visual Studio Code" --args --reuse-window --goto "${tokens[@]}"
+
+  if [ $# -eq 1 ]; then
+    me="$(osascript -e 'tell application "System Events" to get name of first process whose frontmost is true')"
+    osascript\
+      -e 'tell application "Visual Studio Code" to activate'\
+      -e 'tell application "System Events" to keystroke "t" using {command down, option down}'\
+    ;
+  fi
+
   osascript -e "tell application \"$me\" to activate"
   return $?
 }
@@ -57,7 +65,7 @@ function :socket() {
 function :alive() {
   :socket || return $?
 
-  timeout 0.2 "$NVIM" --headless --server "${socket}" --remote-expr 0 >/dev/null 2>&1 || return 2
+  timeout 3.0 "$NVIM" --headless --server "${socket}" --remote-expr 0 >/dev/null 2>&1 || return 2
   return 0
 }
 
@@ -116,30 +124,57 @@ function :pid() {
 }
 
 function :attach() {
-  [[ "$#" -eq 1 ]] || return 0
-  :vsc "$1"
-
-  # iTerm semantic history should pass "%1" (or similar) as one string.
+  # iTerm semantic history passes "<file>[:<line>[:<col>]]" as one string.
   local file ln col _
-  IFS=':' read -r file ln col _ <<< "${1-}"
-  "$NVIM" --headless --server "${socket}" --remote-tab "${file}" || return 11
-  if [[ $ln =~ ^[0-9]+$ ]]; then
-    # Explicit line (and optional column) from caller wins.
-    [[ $col =~ ^[0-9]+$ ]] || col=1
-    "$NVIM" --headless --server "${socket}" --remote-send "<Cmd>call cursor(${ln},${col})<CR>"
-  else
-    # No explicit position: jump to last cursor position (mark `"`).
-    # If it doesn't exist, `silent!` makes it a no-op.
-    : "$NVIM" --headless --server "${socket}" --remote-send "<Cmd>normal! g\`\"<CR>"
-    #"$NVIM" --headless --server "${socket}" --remote-send "<Cmd>silent! normal! g\`\"<CR>"
+  local -a tokens
+  local clicked=0
+  if [[ "$1" == '--iterm' ]]; then
+    #+ Mode: iTerm
+    cd "$2" || return 99
+    let clicked=1
+    tokens+=( "${3}" )
+  elif [[ "$#" -ge 1 ]]; then
+    #+ Mode: CLI
+    tokens+=( "$@" )
   fi
 
-  return 0
-}
+  [[ ${#tokens[@]} -gt 0 ]] || return 0
 
-function :session.write() {
-  [[ -t 1 ]] || return 0      # only record when attached to a TTY
-  cut -d: -f2 <<< "$ITERM_SESSION_ID" > "${session}"
+  #> :vsc "${tokens[@]}"
+
+  local tui tui_attached=0
+  tui=$("$NVIM" --headless --server "${socket}" --remote-expr "len(luaeval('vim.api.nvim_list_uis()'))" 2>/dev/null || echo "")
+  if [[ "$tui" =~ ^[0-9]+$ ]] && (( tui > 0 )); then
+    tui_attached=1
+  fi
+
+  local first=1
+  for token in "${tokens[@]}"; do
+    IFS=':' read -r file ln col _ <<< "${token}"
+
+    local cmd
+    if (( tui )); then
+      cmd="tabedit"
+    else
+      if (( first )); then
+        cmd="edit"
+      else
+        cmd="tabedit"
+      fi
+    fi
+    echo "$tui,$tui_attached,$first -> $cmd"
+
+    first=0
+    if [[ $ln =~ ^[0-9]+$ ]]; then
+      [[ $col =~ ^[0-9]+$ ]] || col=1
+      "$NVIM" --headless --server "${socket}" \
+        --remote-send "<Cmd>${cmd} ${file} | call cursor(${ln},${col})<CR>" || return 11
+    else
+      "$NVIM" --headless --server "${socket}" \
+        --remote-send "<Cmd>${cmd} ${file}<CR>" || return 11
+    fi
+  done
+
   return 0
 }
 
@@ -168,40 +203,24 @@ function :ui.exec() {
   :healthy || return $?
 
   :ui
-  local ui_st=$?
-  case "${ui_st}" in
+  local e=$?
+  case $e in
     0)
       # At least one UI is already attached to this server.
       # Do not try to grab UI again; files were already attached via :attach.
       return 0
       ;;
-    15)
-      # No UI is currently attached: this terminal may become the UI owner.
-      [[ -t 1 ]] || return 0
-      :session.write
-      exec "$NVIM" --server "${socket}" --remote-ui
-      ;;
     14)
       # :ui could not query the server; fall back to legacy session-based logic.
       ;;
-    *)
-      # Unexpected status from :ui; propagate it as an error.
-      return "${ui_st}"
-      ;;
-  esac
-
-  # Legacy fallback when we can't rely on :ui (e.g., RPC error).
-  :same
-  local st=$?
-
-  case "${st}" in
-    0)
+    15)
+      # No UI is currently attached: this terminal may become the UI owner.
       [[ -t 1 ]] || return 0
-      :session.write
       exec "$NVIM" --server "${socket}" --remote-ui
       ;;
     *)
-      return "${st}"
+      # Unexpected status from :ui; propagate it as an error.
+      return $e
       ;;
   esac
 }
@@ -244,7 +263,7 @@ elif [[ -n "${TESTING}" ]]; then
   :debug
 else
   :boot
-  :attach "$@"
+  [[ "$#" -eq 0 ]] || :attach "$@"
   :ui.exec  # MAY exec into UI (and writes session on first TTY)
   exit $?
 fi

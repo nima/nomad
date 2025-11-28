@@ -12,6 +12,10 @@ local record VimMapInfo
   lnum: integer
 end
 
+local record VimBufInfo
+  bufnr: integer
+end
+
 local record VimFn
   maparg: function(lhs: string, mode: string, abbr: boolean, dict: boolean): any
   stdpath: function(kind: string): string
@@ -26,6 +30,9 @@ local record VimFn
   reg_executing: function(): string
   getreg: function(string): any
   getpos: function(string): {integer}
+  getbufinfo: function(opts: any | nil): { VimBufInfo }
+  winbufnr: function(win: number): integer
+  win_findbuf: function(bufnr: integer): { integer }
   line: function(expr: string): integer
   foldlevel: function(lnum: integer): integer
   readfile: function(fname: string): {string}
@@ -36,6 +43,7 @@ end
 
 local record VimKeymap
   set: function(mode: string | {string}, lhs: string, rhs: any, opts: VimMapOpts): nil
+  get: function(mode: string | {string}, lhs: string, opts: any | nil): { VimRawMapInfo }
 end
 
 local record VimOptionList
@@ -89,17 +97,20 @@ local record VimBoBuf
   cinoptions: string
   commentstring: string | nil
   filetype: string
+  buftype: string
 end
 
 local type VimBo = { integer: VimBoBuf }
 
-local type VimCallback = function(ev: {string:any}): nil
+local type VimCallback = function(ev: {string:any} | nil)
 
 local record VimAutocmdEvent
   buf: integer
+  match: string
 end
 
 local record VimAutocmdOpts
+  once: boolean | nil
   callback: VimCallback
   buffer: integer | nil
   command: string | nil
@@ -173,6 +184,7 @@ local record VimRawMapInfo
   script: string
   lnum: integer
   desc: string | nil
+  callback: function | nil
 end
 
 local record VimApi
@@ -189,6 +201,7 @@ local record VimApi
   nvim_buf_get_mark: function(bufnr: integer, mark: string): VimCursorPosition
   nvim_win_get_cursor: function(win: integer): VimCursorPosition
   nvim_buf_get_option: function(bufnr: integer, name: string): any
+  nvim_buf_is_loaded: function(bufnr: integer): boolean
   nvim_create_namespace: function(name: string): integer
   nvim_create_augroup: function(name: string, opts: {string:any}): integer
   nvim_buf_clear_namespace: function(bufnr: integer, ns_id: integer, line_start: integer, line_end: integer): nil
@@ -238,17 +251,16 @@ local record Vim
   log: VimLog
   diagnostic: VimDiagnostic
   tbl_extend: function(behavior: string, dst: {string:any}, src: {string:any}...): {string:any}
-  notify: function(
-    msg: string,
-    level: any | nil,
-    opts: { string : any } | nil
-  ): nil
+  notify: function(msg: string, level: any | nil, opts: { string: any } | nil | nil...): any
   pesc: function(str: string): string
 end
+
+local type AnyFunction = function(...: any): any
 
 local M = {
   VimMapOpts          = VimMapOpts,
   VimMapInfo          = VimMapInfo,
+  VimBufInfo          = VimBufInfo,
   VimFn               = VimFn,
   VimKeymap           = VimKeymap,
   VimOptLocal         = VimOptLocal,
@@ -272,6 +284,7 @@ local M = {
   VimCursorPosition   = VimCursorPosition,
   VimCursorPositions  = VimCursorPositions,
   VimWo               = VimWo,
+  AnyFunction         = AnyFunction,
 }
 
 return M
