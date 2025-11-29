@@ -18,7 +18,6 @@ local plugs: {string} = {
   "plugins.llm",        -- Large Language Models (DeepSeek, etc.)
   "plugins.md",         -- Markdown
   "plugins.hotkeys",    -- Hotkeys (Ad-Hoc shortcuts and WhichKey cheatsheets)
-  "plugins.cursor",     -- Cursor position
   "plugins.comments",   -- Tagged Comment
   "plugins.folds",      -- Special Comment Folds
   "plugins.lint",       -- Lint
