@@ -2,8 +2,9 @@ local t = require("core.types")
 global vim: t.vim.Vim
 
 -- Global theme selection (single source of truth)
-vim.g.colorscheme = "monokai"
-vim.g.colorscheme = "elflord"
+vim.g.colorscheme = "default"
+--vim.g.colorscheme = "monokai"
+--vim.g.colorscheme = "elflord"
 vim.cmd("syntax on")
 vim.o.laststatus = 3
 vim.o.showmode = false
