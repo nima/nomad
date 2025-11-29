@@ -76,6 +76,7 @@ function M.lazy(): PluginSpec
     lazy = false,
     keymaps = keymaps,
     dependencies = {
+      "kiddos/gemini.nvim",
       "nvim-lua/plenary.nvim",
       "MunifTanjim/nui.nvim",
       "nvim-telescope/telescope.nvim",
