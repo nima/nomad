@@ -17,6 +17,7 @@ local record VimBufInfo
 end
 
 local record VimFn
+  argc: function(): integer
   maparg: function(lhs: string, mode: string, abbr: boolean, dict: boolean): any
   stdpath: function(kind: string): string
   system: function(cmd: {string}): string
@@ -39,6 +40,7 @@ local record VimFn
   writefile: function(lines: {string}, fname: string): any
   mkdir: function(path: string, mode: string): any
   clearmatches: function(): any
+  jobstart: function(cmd: {string} | string, opts: {string: any}): integer
 end
 
 local record VimKeymap
@@ -183,7 +185,7 @@ local record VimRawMapInfo
   rhs: any
   script: string
   lnum: integer
-  desc: string | nil
+  desc: string
   callback: function | nil
 end
 
@@ -254,6 +256,7 @@ local record Vim
   notify: function(msg: string, level: any | nil, opts: { string: any } | nil | nil...): any
   pesc: function(str: string): string
   schedule: function(callback: function): nil
+  defer_fn: function(callback: function, delay: integer): nil
 end
 
 local type AnyFunction = function(...: any): any
