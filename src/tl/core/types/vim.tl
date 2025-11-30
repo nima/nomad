@@ -145,6 +145,8 @@ local record VimOptRuntime
   modelines: integer
   modelineexpr: boolean
   viewoptions: VimViewOptions
+  scrolloff: integer
+  wrap: boolean
 end
 
 local record VimBo
@@ -300,9 +302,9 @@ local M = {
   VimBufInfo          = VimBufInfo,
   VimFn               = VimFn,
   VimKeymap           = VimKeymap,
+  VimLoop             = VimLoop,
   VimOptLocal         = VimOptLocal,
   VimOptGlobal        = VimOptGlobal,
-  VimLoop             = VimLoop,
   VimOptRuntime       = VimOptRuntime,
   VimOptRuntimeRtp    = VimOptRuntimeRtp,
   VimCmd              = VimCmd,
