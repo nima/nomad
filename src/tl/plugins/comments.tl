@@ -1,38 +1,7 @@
--- Comment tag colors + extmark-based highlighter (pure Neovim Lua)
-
 local t = require("core.types")
 global vim: t.vim.Vim
-
-local M = {}
-
--- ---------------------------------------------------------------------------
--- Highlight groups
--- ---------------------------------------------------------------------------
-
-local function hi(group: string, opts: {string: any})
-  vim.api.nvim_set_hl(0, group, opts)
-end
-
-local function define_comment_tag_highlights()
-  hi("CommentTagTitle",        { fg = "#FFFFFF", bold = true })
-  hi("CommentTagProbing",      { fg = "#FC59A3" })
-  hi("CommentTagFYI",          { fg = "#3EA8FF" })
-  hi("CommentTagReasoning",    { fg = "#FFFFFF" })
-  hi("CommentTagUpstream",     { fg = "#FF7F50" })
-  hi("CommentTagDownstream",   { fg = "#FF9F1C" })
-  hi("CommentTagStaged",       { fg = "#87C830" })
-  hi("CommentTagAttention",    { fg = "#FF3366" })
-  hi("CommentTagNotice",       { fg = "#FFD23F" })
-  hi("CommentTagReference",    { fg = "#00CEC9", italic = true })
-  hi("CommentTagCost",         { fg = "#FFA600" })
-  hi("CommentTagONotation",    { fg = "#FF6F61" })
-  hi("CommentTagDeprecation",  { fg = "#FF3333", strikethrough = true })
-end
-
--- Apply once at startup
-define_comment_tag_highlights()
-
--- Map single-character tags to the highlight groups defined above.
+local ns = vim.api.nvim_create_namespace("RakhshCommentTagsNS")
+local group = vim.api.nvim_create_augroup("RakhshCommentTags", { clear = true })
 local tag_groups = {
   ["="] = "CommentTagTitle",        --= Reasoning / rationale
   ["-"] = "CommentTagNotice",       --- Notice/Warning or sub-heading
@@ -48,14 +17,28 @@ local tag_groups = {
   ["~"] = "CommentTagDeprecation",  --~ Deprecated / to be removed
 }
 
---= Extmark-based tag highlighter
-local ns = vim.api.nvim_create_namespace("RakhshCommentTagsNS")
-local group = vim.api.nvim_create_augroup("RakhshCommentTags", { clear = true })
+local function hi(grp: string, opts: {string: any})
+  vim.api.nvim_set_hl(0, grp, opts)
+end
 
---= Apply comment-tag highlights in a buffer using extmarks.
---< @param bufnr integer|nil
-local function apply_comment_tag_extmarks(bufnr: integer | nil)
-  local resolved = bufnr or vim.api.nvim_get_current_buf()
+local function redefine_comment_tag_highlights(): nil
+  hi("CommentTagTitle",        { fg = "#FFFFFF", bold = true })
+  hi("CommentTagProbing",      { fg = "#FC59A3" })
+  hi("CommentTagFYI",          { fg = "#3EA8FF" })
+  hi("CommentTagUpstream",     { fg = "#FF7F50" })
+  hi("CommentTagDownstream",   { fg = "#FF9F1C" })
+  hi("CommentTagStaged",       { fg = "#87C830" })
+  hi("CommentTagAttention",    { fg = "#FF3366" })
+  hi("CommentTagNotice",       { fg = "#FFD23F" })
+  hi("CommentTagReference",    { fg = "#00CEC9", italic = true })
+  hi("CommentTagCost",         { fg = "#FFA600" })
+  hi("CommentTagONotation",    { fg = "#FF6F61" })
+  hi("CommentTagDeprecation",  { fg = "#FF3333", strikethrough = true })
+end
+
+local function apply_comment_tag_extmarks(bufnr: integer)
+
+  local resolved = bufnr
   vim.api.nvim_buf_clear_namespace(resolved, ns, 0, -1)
 
   local cs = (vim.bo[resolved].commentstring or "") as string
@@ -82,10 +65,7 @@ local function apply_comment_tag_extmarks(bufnr: integer | nil)
         --+ any fold-marker tokens like "-={", "-=[" or "}=-".
         local content_start = e
         if content_start < #line then
-          local content_end = #line
-
           local cut: integer | nil = nil
-
           local function consider(idx: integer | nil)
             if idx ~= nil and idx > content_start then
               if cut == nil or idx < cut then
@@ -93,7 +73,6 @@ local function apply_comment_tag_extmarks(bufnr: integer | nil)
               end
             end
           end
-
           local function consider_token(token: string)
             local tail = line:sub(content_start + 1)
             local rel = tail:find(vim.pesc(token))
@@ -105,12 +84,13 @@ local function apply_comment_tag_extmarks(bufnr: integer | nil)
 
           consider_token("-={")
           consider_token("-=[")
+          consider_token("]=-")
           consider_token("}=-")
 
+          local content_end = #line
           if cut ~= nil and cut > content_start then
             content_end = cut - 1
           end
-
           if content_end > content_start then
             vim.api.nvim_buf_set_extmark(resolved, ns, linenr - 1, content_start, {
               end_col  = content_end,
@@ -125,26 +105,24 @@ local function apply_comment_tag_extmarks(bufnr: integer | nil)
   end
 end
 
-vim.api.nvim_create_autocmd({
-  "BufWinEnter",
-  "BufWritePost",
-  "TextChanged",
-  "TextChangedI",
-  "ColorScheme",
-}, {
-  group = group,
-  callback = function(ev): nil
-    local _ = ev -- ev is a generic autocmd event table; we don't need its fields here.
-    apply_comment_tag_extmarks(nil)
-  end,
-})
+local M: t.plugins.PluginModule = {}
 
-vim.api.nvim_create_autocmd("ColorScheme", {
-  group = group,
-  callback = function(ev): nil
-    local _ = ev -- ignore ev; just re-define highlights
-    define_comment_tag_highlights()
-  end,
-})
+function M.init(): nil
+  vim.api.nvim_create_autocmd({"VimEnter", "BufWinEnter", "BufWritePost", "TextChanged", "TextChangedI"}, {
+    group = group,
+    callback = function(ev): nil
+      local _ = ev -- ev is a generic autocmd event table; not required here
+      apply_comment_tag_extmarks(vim.api.nvim_get_current_buf())
+    end,
+  })
+  vim.api.nvim_create_autocmd("ColorScheme", {
+    group = group,
+    callback = function(ev): nil
+      local _ = ev -- ignore; we only need to re-define our groups
+      redefine_comment_tag_highlights()
+    end,
+  })
+  redefine_comment_tag_highlights()
+end
 
 return M
