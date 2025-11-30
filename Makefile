@@ -198,7 +198,7 @@ build: pre-validate
 	$(info [$(call blue,$@)])
 	@rm -rf build
 	@mkdir -p build
-	@cyan build --prune
+	@cyan build --prune > $(RAKHSH_CACHE)/cyan.log 2>&1 || { cat $(RAKHSH_CACHE)/cyan.log && exit 1; }
 	@#rsync -ai --prune-empty-dirs --info=NAME0 --include "*/" --include="*.lua" --exclude="*" src/lua/ build/lua/
 .PHONY: build
 
