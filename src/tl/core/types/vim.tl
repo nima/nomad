@@ -1,20 +1,30 @@
-local record VimMapOpts
-  noremap: boolean
-  silent: boolean
-  desc: string
-  buffer: integer
+--= Layer 0
+
+local record Vim
+  api: VimApi
+  fn: VimFn
+  keymap: VimKeymap
+  loop: VimLoop
+  opt: VimOptRuntime
+  o: VimOptGlobal
+  wo: VimWo
+  g: VimGlobal
+  opt_local: VimOptLocal
+  bo: {VimBo}
+  cmd: VimCmd
+  lsp: VimLSP
+  log: VimLog
+  env: VimEnv
+  diagnostic: VimDiagnostic
+  tbl_extend: function(behavior: string, dst: {string:any}, src: {string:any}...): {string:any}
+  notify: function(msg: string, level: any | nil, opts: { string: any } | nil | nil...): any
+  pesc: function(str: string): string
+  schedule: function(callback: function): nil
+  defer_fn: function(callback: function, delay: integer): nil
+  treesitter: VimTreesitter
 end
 
-local record VimMapInfo
-  lhs: string
-  rhs: any
-  script: string
-  lnum: integer
-end
-
-local record VimBufInfo
-  bufnr: integer
-end
+--= Layer 1
 
 local record VimFn
   argc: function(): integer
@@ -41,11 +51,53 @@ local record VimFn
   mkdir: function(path: string, mode: string): any
   clearmatches: function(): any
   jobstart: function(cmd: {string} | string, opts: {string: any}): integer
+  hlexists: function(name: string): integer
+end
+
+local record VimApi
+  nvim_set_hl: function(ns_id: integer, name: string, opts: { string: any }): nil
+  nvim_create_autocmd: function(events: {string} | string, opts: VimAutocmdOpts): integer
+  nvim_buf_get_keymap: function(bufnr: integer, mode: string): { VimRawMapInfo }
+  nvim_buf_get_name: function(bufnr: integer): string
+  nvim_list_uis: function(): {NvimUI}
+  nvim_create_buf: function(listed: boolean, scratch: boolean): integer
+  nvim_buf_line_count: function(bufnr: integer): integer
+  nvim_buf_get_lines: function(bufnr: integer, start: integer, stop: integer, strict_indexing: boolean): {string}
+  nvim_buf_set_extmark: function(bufnr: integer, ns_id: integer, line: integer, col: integer, opts: {string:any}): integer
+  nvim_win_set_cursor: function(win: integer, pos: VimCursorPosition): nil
+  nvim_buf_get_mark: function(bufnr: integer, mark: string): VimCursorPosition
+  nvim_win_get_cursor: function(win: integer): VimCursorPosition
+  nvim_buf_get_option: function(bufnr: integer, name: string): any
+  nvim_buf_is_loaded: function(bufnr: integer): boolean
+  nvim_create_namespace: function(name: string): integer
+  nvim_create_augroup: function(name: string, opts: {string:any}): integer
+  nvim_buf_clear_namespace: function(bufnr: integer, ns_id: integer, line_start: integer, line_end: integer): nil
+  nvim_get_current_buf: function(): integer
 end
 
 local record VimKeymap
   set: function(mode: string | {string}, lhs: string, rhs: any, opts: VimMapOpts): nil
   get: function(mode: string | {string}, lhs: string, opts: any | nil): { VimRawMapInfo }
+end
+
+--= Layers 3+
+
+local record VimMapOpts
+  noremap: boolean
+  silent: boolean
+  desc: string
+  buffer: integer
+end
+
+local record VimMapInfo
+  lhs: string
+  rhs: any
+  script: string
+  lnum: integer
+end
+
+local record VimBufInfo
+  bufnr: integer
 end
 
 local record VimOptionList
@@ -196,27 +248,6 @@ local record VimRawMapInfo
   callback: function | nil
 end
 
-local record VimApi
-  nvim_set_hl: function(ns_id: integer, name: string, opts: { string: any }): nil
-  nvim_create_autocmd: function(events: {string} | string, opts: VimAutocmdOpts): integer
-  nvim_buf_get_keymap: function(bufnr: integer, mode: string): { VimRawMapInfo }
-  nvim_buf_get_name: function(bufnr: integer): string
-  nvim_list_uis: function(): {NvimUI}
-  nvim_create_buf: function(listed: boolean, scratch: boolean): integer
-  nvim_buf_line_count: function(bufnr: integer): integer
-  nvim_buf_get_lines: function(bufnr: integer, start: integer, stop: integer, strict_indexing: boolean): {string}
-  nvim_buf_set_extmark: function(bufnr: integer, ns_id: integer, line: integer, col: integer, opts: {string:any}): integer
-  nvim_win_set_cursor: function(win: integer, pos: VimCursorPosition): nil
-  nvim_buf_get_mark: function(bufnr: integer, mark: string): VimCursorPosition
-  nvim_win_get_cursor: function(win: integer): VimCursorPosition
-  nvim_buf_get_option: function(bufnr: integer, name: string): any
-  nvim_buf_is_loaded: function(bufnr: integer): boolean
-  nvim_create_namespace: function(name: string): integer
-  nvim_create_augroup: function(name: string, opts: {string:any}): integer
-  nvim_buf_clear_namespace: function(bufnr: integer, ns_id: integer, line_start: integer, line_end: integer): nil
-  nvim_get_current_buf: function(): integer
-end
-
 local record VimWo
   number: boolean
   relativenumber: boolean
@@ -255,30 +286,6 @@ end
 
 local record VimEnv
   OPENAI_API_KEY: string | nil
-end
-
-local record Vim
-  api: VimApi
-  fn: VimFn
-  keymap: VimKeymap
-  loop: VimLoop
-  opt: VimOptRuntime
-  o: VimOptGlobal
-  wo: VimWo
-  g: VimGlobal
-  opt_local: VimOptLocal
-  bo: {VimBo}
-  cmd: VimCmd
-  lsp: VimLSP
-  log: VimLog
-  env: VimEnv
-  diagnostic: VimDiagnostic
-  tbl_extend: function(behavior: string, dst: {string:any}, src: {string:any}...): {string:any}
-  notify: function(msg: string, level: any | nil, opts: { string: any } | nil | nil...): any
-  pesc: function(str: string): string
-  schedule: function(callback: function): nil
-  defer_fn: function(callback: function, delay: integer): nil
-  treesitter: VimTreesitter
 end
 
 local record VimNotify
