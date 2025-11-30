@@ -5,7 +5,6 @@ local languages: { string: boolean } = {
   go     = true,
   lua    = true,
   bash   = true,
-  zsh    = true,
 }
 
 local function filetypes(): {string}
