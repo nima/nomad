@@ -21,6 +21,7 @@ local plugs: {string} = {
   "plugins.folds",      -- Special Comment Folds
   "plugins.lint",       -- Lint
   "plugins.observer",   -- Observer
+  --"plugins.odbc",     -- Database connections
 }
 
 local type PluginSpec = t.plugins.PluginSpec
