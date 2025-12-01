@@ -22,9 +22,19 @@ local record Vim
   schedule: function(callback: function): nil
   defer_fn: function(callback: function, delay: integer): nil
   treesitter: VimTreesitter
+  --- add optional lua-level split if desired
+  split: function(str: string, sep: string, opts: VimSplitOpts | nil): {string}
 end
 
 --= Layer 1
+
+local record VimSplitOpts
+  plain: boolean
+end
+
+local record VimExec2Result
+  output: string
+end
 
 local record VimFn
   argc: function(): integer
@@ -52,6 +62,7 @@ local record VimFn
   clearmatches: function(): any
   jobstart: function(cmd: {string} | string, opts: {string: any}): integer
   hlexists: function(name: string): integer
+  split: function(str: string, sep: string, opts: VimSplitOpts | nil): {string}
 end
 
 local record VimApi
@@ -63,6 +74,7 @@ local record VimApi
   nvim_create_buf: function(listed: boolean, scratch: boolean): integer
   nvim_buf_line_count: function(bufnr: integer): integer
   nvim_buf_get_lines: function(bufnr: integer, start: integer, stop: integer, strict_indexing: boolean): {string}
+  nvim_buf_set_lines: function(bufnr: integer, start: integer, stop: integer, strict_indexing: boolean, replacement: {string}): nil
   nvim_buf_set_extmark: function(bufnr: integer, ns_id: integer, line: integer, col: integer, opts: {string:any}): integer
   nvim_win_set_cursor: function(win: integer, pos: VimCursorPosition): nil
   nvim_buf_get_mark: function(bufnr: integer, mark: string): VimCursorPosition
@@ -73,6 +85,10 @@ local record VimApi
   nvim_create_augroup: function(name: string, opts: {string:any}): integer
   nvim_buf_clear_namespace: function(bufnr: integer, ns_id: integer, line_start: integer, line_end: integer): nil
   nvim_get_current_buf: function(): integer
+  nvim_exec2: function(cmd: string, opts: {string:any}): VimExec2Result
+  nvim_open_win: function(bufnr: integer, enter: boolean, opts: {string:any}): integer
+  nvim_win_close: function(win: integer, force: boolean): nil
+  nvim_win_is_valid: function(win: integer): boolean
 end
 
 local record VimBo
@@ -108,6 +124,7 @@ local record VimMapOpts
   silent: boolean
   desc: string
   buffer: integer
+  nowait: boolean | nil
 end
 
 local record VimMapInfo
@@ -146,6 +163,8 @@ local record VimOptGlobal
   viewoptions: string
   viewdir: string
   more: boolean
+  columns: integer
+  lines: integer
 end
 
 local record VimLoop

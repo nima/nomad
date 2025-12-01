@@ -5,6 +5,50 @@ local On = t.plugins.KeymapEvents
 
 global vim: t.vim.Vim
 
+local function open_popup_with_command_output(cmd: string)
+  -- Capture command output (Neovim 0.8+)
+  local ok_exec, res = pcall(vim.api.nvim_exec2, cmd, { output = true })
+  if not ok_exec or res == nil then
+    vim.notify("[rakhsh/ui] exec failed for: " .. cmd, vim.log.levels.ERROR, nil)
+    return
+  end
+
+  local out = res.output or ""
+  if out == "" then
+    vim.notify("[rakhsh/ui] no output for: " .. cmd, vim.log.levels.INFO, nil)
+    return
+  end
+
+  local lines = vim.split(out, "\n", { plain = true })
+
+  -- Create scratch buffer
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+  -- Compute centered floating window size/position
+  local width = math.floor(vim.o.columns * 0.8)
+  local height = math.floor(vim.o.lines * 0.6)
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = "editor",
+    style = "minimal",
+    border = "rounded",
+    row = row,
+    col = col,
+    width = width,
+    height = height,
+  })
+
+  -- q closes the popup
+  vim.keymap.set("n", "q", function()
+    if vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_close(win, true)
+    end
+  end, { buffer = buf, nowait = true, silent = true })
+end
+
 local M: t.plugins.PluginModule = {}
 
 local function install_here()
@@ -47,7 +91,9 @@ function M.lazy(): t.plugins.PluginSpec
         mode = "n",
         role = R.TUI,
         key = "?",
-        rhs = "<cmd>split | TSModuleInfo<CR>",
+        rhs = function()
+          open_popup_with_command_output("TSModuleInfo")
+        end,
         desc = "TS: module info",
         tags = { T.ActionInfo, T.TargetBuffer },
         on = On.Immediate,
