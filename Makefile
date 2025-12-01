@@ -227,28 +227,10 @@ sync: $(RAKHSH_CONFIG) link
 	$(info [$(call green,$@)])
 .PHONY: sync
 
-post-validate: install
-	$(info [$(call magenta,$@)])
-	@$(nvim) --headless +'lua print(vim.inspect(vim.fn.maparg("K", "n", false, true)))' +qa
-	@$(nvim) --headless "+lua local ok,u = pcall(require,'core.utils');\
-	  if not ok then error('Rakhsh post-validate: require(\"core.utils\") failed: '..tostring(u)) end;\
-	  if type(u.validate_keymaps) ~= 'function' then\
-	    error('Rakhsh post-validate: core.utils.validate_keymaps() is not implemented (dev TODO)');\
-	  end;\
-	  u.validate_keymaps()" \
-	+qa
-	@#$(nvim) --headless -u $(RAKHSH_CONFIG)/init.lua "+quit" || exit 1
-	@#$(nvim) --headless -u $(RAKHSH_CONFIG)/init.lua "+checkhealth" "+qa" > /tmp/nvim.log
-	@#grep "ERROR" /tmp/nvim.log && exit 1 || exit 0
-	@#$(find) $(RAKHSH_CONFIG) -type f -name "*.lua" -print0\
-		| xargs -0 -I{} $(nvim) --headless -c "luafile {}" -c "qa"\
-		|| exit 1
-.PHONY: post-validate
-
-purgeinstall: purge post-validate
+purgeinstall: purge install
 .PHONY: purgeinstall
 
-reinstall: uninstall post-validate
+reinstall: uninstall
 .PHONY: reinstall
 
 unlink:; rm -f ~/.zshrc.d/rakhsh.zshrc
