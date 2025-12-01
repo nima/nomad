@@ -43,6 +43,7 @@ local record VimFn
   system: function(cmd: {string}): string
   expand: function(expr: string): string
   escape: function(str: string, chars: string): string
+  fnamemodify: function(fname: string, mods: string): string
   matchadd: function(group: string, pattern: string, priority: integer | nil, id: integer | nil): integer
   matchdelete: function(id: integer): integer
   has: function(string): integer
@@ -86,6 +87,7 @@ local record VimApi
   nvim_buf_clear_namespace: function(bufnr: integer, ns_id: integer, line_start: integer, line_end: integer): nil
   nvim_get_current_buf: function(): integer
   nvim_exec2: function(cmd: string, opts: {string:any}): VimExec2Result
+  nvim_set_option_value: function(name: string, value: any, opts: {string:any}): nil
   nvim_open_win: function(bufnr: integer, enter: boolean, opts: {string:any}): integer
   nvim_win_close: function(win: integer, force: boolean): nil
   nvim_win_is_valid: function(win: integer): boolean
