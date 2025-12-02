@@ -230,7 +230,7 @@ sync: $(RAKHSH_CONFIG) link
 purgeinstall: purge install
 .PHONY: purgeinstall
 
-reinstall: uninstall
+reinstall: uninstall install
 .PHONY: reinstall
 
 unlink:; rm -f ~/.zshrc.d/rakhsh.zsh
