@@ -3,6 +3,8 @@
 local t = require("core.types")
 global vim: t.vim.Vim
 
+local buffman = require("core.buffman")
+
 if vim.fn.has("nvim") == 1 then
   local sock = os.getenv("NVIM_LISTEN_ADDRESS")
   if sock and sock ~= "" then
@@ -14,7 +16,6 @@ end
 When rx ui is launched after the socket has already been thrust
 into life via cc (command-clicks), then they will be there in
 the form of headless buffers.  Convert them to tabs.
-]]--
 vim.api.nvim_create_autocmd("UIEnter", {
   once = true,
   callback = function()
@@ -28,6 +29,7 @@ vim.api.nvim_create_autocmd("UIEnter", {
     end
   end,
 })
+]]--
 
 vim.api.nvim_create_autocmd("WinClosed", {
   callback = function(ev: t.vim.VimAutocmdEvent)
@@ -60,3 +62,26 @@ vim.api.nvim_create_autocmd("WinClosed", {
     end
   end,
 })
+
+vim.api.nvim_create_autocmd("UIEnter", {
+  callback = function()
+    -- When a UI attaches, ensure all existing listed file buffers
+    -- are registered with buffman so they each get a tab.
+    local infos = vim.fn.getbufinfo({ buflisted = 1 })
+    for _, info in ipairs(infos) do
+      local buf = info.bufnr
+      if buf and buf > 0 and not buffman.is_managed(buf) then
+        local name = vim.fn.bufname(buf)
+        if name ~= "" then
+          buffman.mark_file(buf, name)
+        end
+      end
+    end
+
+    buffman.sync_tabs()
+  end,
+})
+
+vim.api.nvim_create_user_command("RakhshSyncTabs", function()
+  buffman.sync_tabs()
+end, {})

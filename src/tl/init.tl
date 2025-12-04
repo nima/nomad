@@ -18,6 +18,7 @@ vim.opt.wrap = false
 vim.opt.scrolloff = cfg.scrolloff
 
 --= 3. Core wiring (no plugin assumptions)
+require("core.buffman")
 require("core.rakhsh")
 require("core.options")
 require("core.terminal")

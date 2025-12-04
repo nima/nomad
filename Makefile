@@ -288,9 +288,9 @@ state: pid := $(shell lsof -t $(RAKHSH_SOCKET) 2>/dev/null)
 state:
 	@echo -e "[$(call magenta,$@)]"
 	@printf "%-24s" "Socket:"
-	@[ -e $(RAKHSH_SOCKET) ] && echo "$(call green,$(RAKHSH_SOCKET))" || echo "$(call black,$(RAKHSH_SOCKET))"
+	@[ -e $(RAKHSH_SOCKET) ] && echo -e "$(call green,$(RAKHSH_SOCKET))" || echo -e "$(call black,$(RAKHSH_SOCKET))"
 	@printf "%-24s" "PID:"
-	@[ -n "$(pid)" ] && echo "$(call green,$(pid))" || echo "$(call black,000)"
+	@[ -n "$(pid)" ] && echo -e "$(call green,$(pid))" || echo -e "$(call black,000)"
 	@printf "%-24s" "Buffers:"
 	@n=0; [ ! -S $(RAKHSH_SOCKET) ] || n=$$(nvim --server $(RAKHSH_SOCKET) --headless --remote-expr "len(getbufinfo({'buflisted':1}))"); echo "$$n"
 .PHONY: state
