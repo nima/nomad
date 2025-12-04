@@ -169,11 +169,6 @@ function :attach() {
     fi
   done
 
-  if (( tui_attached == 1 )); then
-    "$NVIM" --headless --server "${socket}" \
-      --remote-send "<Cmd>RakhshSyncTabs<CR>" >/dev/null 2>&1 || return 11
-  fi
-
   return 0
 }
 
