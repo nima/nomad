@@ -23,9 +23,9 @@ good  = $(shell echo "$(GREEN)$(1)$(ENDC)")
 bad   = $(shell echo "$(RED)$(1)$(ENDC)")
 ugly  = $(shell echo "$(UGLY)$(1)$(ENDC)")
 
-luarocks_t = $(shell echo "[$(CYAN)LuaRocks$(ENDC)]")
-brew_t     = $(shell echo "[$(YELLOW)Brew$(ENDC)]")
-npm_t      = $(shell echo "[$(GREEN)NPM$(ENDC)]")
+luarocks_t = $(shell echo   "[$(CYAN)LuaRocks$(ENDC)]")
+brew_t     = $(shell echo "[$(YELLOW)HomeBrew$(ENDC)]")
+npm_t      = $(shell echo  "[$(GREEN)NdPkgMgr$(ENDC)]")
 
 export NVIM_APPNAME=rakhsh
 nvim := NVIM_APPNAME=rakhsh $(shell command -v nvim)
