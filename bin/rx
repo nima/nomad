@@ -142,11 +142,12 @@ function :attach() {
     tui_attached=1
   fi
 
+  [[ ${#tokens[@]} -gt 0 ]] || return 0
+
   local token
   for token in "${tokens[@]}"; do
     echo "${token}" >> /tmp/x
-    "$NVIM" --headless --server "${socket}" \
-      --remote-send "<Esc>:RakhshOpen ${token}<CR>" || return 11
+    "$NVIM" --headless --server "${socket}" --remote-send "<Esc>:RakhshOpen ${token}<CR>" || return 11
   done
 
   return 0
@@ -253,7 +254,7 @@ else
     :attach ${clicked} "${3}"
     :tui.exec  # MAY exec into UI (and writes session on first TTY)
   elif [[ $# -eq 1 ]] && [[ "$1" == '--status' ]] && [[ -S "${socket}" ]]; then
-	${NVIM} --server $socket --headless --remote-expr "luaeval('require(\"core.status\").status_summary()')" +qa
+    "${NVIM}" --server "${socket}" --headless --remote-expr "luaeval('require(\"core.status\").status_summary()')" +qa
   else
     #+ Mode: CLI
     let clicked=0
