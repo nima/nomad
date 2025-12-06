@@ -147,7 +147,7 @@ function :attach() {
   local token
   for token in "${tokens[@]}"; do
     echo "${token}" >> /tmp/x
-    "$NVIM" --headless --server "${socket}" --remote-send "<Esc>:RakhshOpen ${token}<CR>" || return 11
+    "$NVIM" --headless --server "${socket}" --remote-send "<Cmd>RakhshOpen ${token}<CR>" || return 11
   done
 
   return 0
