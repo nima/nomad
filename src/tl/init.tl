@@ -20,11 +20,11 @@ vim.opt.scrolloff = cfg.scrolloff
 
 --= 3. Core wiring (no plugin assumptions)
 require("core.rakhsh")
-require("core.options")
-require("core.terminal")
+--require("core.options")
+--require("core.terminal")
 
 --= 4. Plugin Systems (penultimate)
-require("core.plugins")
+--require("core.plugins")
 
 --= 5. Post-Plugin Systems (ultimate)
 local cursor = require("core.cursor")
